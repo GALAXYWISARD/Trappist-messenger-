@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TRAPPIST Messenger</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: #0b0b0d;
+    color: #ffffff;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* ЭКРАН ВХОДА */
+  #login-screen {
+    background-color: #16161a;
+    padding: 32px 24px;
+    border-radius: 20px;
+    width: 92%;
+    max-width: 380px;
+    text-align: center;
+    border: 1px solid #27272c;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+  }
+
+  .logo-badge {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #007aff, #00c6ff);
+    border-radius: 18px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: bold;
+    box-shadow: 0 0 25px rgba(0, 122, 255, 0.4);
+  }
+
+  #login-screen h2 {
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  #login-screen p {
+    color: #8e8e93;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    border: 1px solid #2c2c32;
+    background-color: #0b0b0d;
+    color: #ffffff;
+    font-size: 15px;
+    outline: none;
+  }
+
+  .input-field:focus {
+    border-color: #007aff;
+  }
+
+  #login-error {
+    color: #ef4444;
+    font-size: 13px;
+    margin-bottom: 14px;
+    min-height: 18px;
+    display: none;
+  }
+
+  .primary-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    background-color: #007aff;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .primary-btn:active {
+    background-color: #0062cc;
+  }
+
+  /* ОСНОВНОЕ ПРИЛОЖЕНИЕ */
+  #app-screen {
+    display: none;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    background-color: #121215;
+  }
+
+  .nav-rail {
+    width: 60px;
+    background-color: #161619;
+    border-right: 1px solid #222226;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 0;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+
+  .nav-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #71717a;
+    cursor: pointer;
+    font-size: 20px;
+  }
+
+  .nav-icon.active {
+    background-color: #27272c;
+    color: #38bdf8;
+  }
+
+  .nav-icon.bottom {
+    margin-top: auto;
+    color: #ef4444;
+  }
+
+  .sidebar {
+    width: 340px;
+    background-color: #18181c;
+    border-right: 1px solid #222226;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .sidebar-header {
+    padding: 18px 16px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .sidebar-header h1 {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .user-tag {
+    font-size: 12px;
+    color: #38bdf8;
+    background: #242429;
+    padding: 4px 10px;
+    border-radius: 8px;
+    margin-left: 8px;
+  }
+
+  .new-chat-btn {
+    background: #27272c;
+    border: none;
+    color: #38bdf8;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    font-size: 18px;
+    cursor: pointer;
+  }
+
+  .search-box {
+    padding: 0 16px 12px;
+  }
+
+  .search-box input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: none;
+    background-color: #242429;
+    color: #ffffff;
+    font-size: 14px;
+    outline: none;
+  }
+
+  .folders {
+    display: flex;
+    gap: 16px;
+    padding: 0 16px 10px;
+    border-bottom: 1px solid #222226;
+    font-size: 13px;
+    color: #8e8e93;
+  }
+
+  .folder {
+    cursor: pointer;
+    padding-bottom: 6px;
+  }
+
+  .folder.active {
+    color: #38bdf8;
+    border-bottom: 2px solid #38bdf8;
+    font-weight: 600;
+  }
+
+  .chat-list {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .chat-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    gap: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+
+  .chat-item.active {
+    background-color: #27272c;
+  }
+
+  .avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+    font-size: 16px;
+    color: #ffffff;
+    flex-shrink: 0;
+  }
+
+  .chat-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .chat-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .chat-name {
+    font-weight: 600;
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chat-time {
+    font-size: 11px;
+    color: #71717a;
+  }
+
+  .chat-preview {
+    font-size: 13px;
+    color: #8e8e93;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ОКНО ПЕРЕПИСКИ */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #0b0b0d;
+    min-width: 0;
+  }
+
+  .chat-header {
+    height: 62px;
+    padding: 0 16px;
+    border-bottom: 1px solid #1f1f24;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #121215;
+    flex-shrink: 0;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .back-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: #007aff;
+    font-size: 26px;
+    cursor: pointer;
+    padding-right: 4px;
+  }
+
+  .chat-header-info h3 {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .chat-header-info span {
+    font-size: 12px;
+    color: #34c759;
+  }
+
+  .connect-btn {
+    background-color: #242429;
+    color: #38bdf8;
+    border: 1px solid #323238;
+    padding: 7px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .messages-container {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .message {
+    max-width: 78%;
+    padding: 11px 15px;
+    border-radius: 18px;
+    font-size: 14.5px;
+    line-height: 1.4;
+    word-wrap: break-word;
+  }
+
+  .message.incoming {
+    background-color: #26262a;
+    color: #f4f4f5;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+
+  .message.outgoing {
+    background-color: #007aff;
+    color: #ffffff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg-time {
+    display: block;
+    font-size: 10px;
+    opacity: 0.65;
+    margin-top: 4px;
+    text-align: right;
+  }
+
+  .input-area {
+    padding: 12px 16px;
+    background-color: #121215;
+    border-top: 1px solid #1f1f24;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .input-area input {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 22px;
+    border: none;
+    background-color: #242429;
+    color: #ffffff;
+    font-size: 15px;
+    outline: none;
+  }
+
+  .send-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    background-color: #007aff;
+    color: #ffffff;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* МОДАЛЬНЫЕ ОКНА */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    padding: 16px;
+  }
+
+  .modal-card {
+    background: #18181c;
+    border: 1px solid #2c2c32;
+    border-radius: 18px;
+    padding: 20px;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .modal-card h3 {
+    margin-bottom: 10px;
+    font-size: 18px;
+  }
+
+  .modal-card p {
+    font-size: 13px;
+    color: #a1a1aa;
+    margin-bottom: 14px;
+    line-height: 1.4;
+  }
+
+  .modal-card textarea {
+    width: 100%;
+    height: 75px;
+    background: #0b0b0d;
+    border: 1px solid #2c2c32;
+    border-radius: 10px;
+    color: #38bdf8;
+    padding: 10px;
+    font-size: 11px;
+    margin-bottom: 10px;
+    resize: none;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .secondary-btn {
+    flex: 1;
+    padding: 11px;
+    border-radius: 10px;
+    border: 1px solid #323238;
+    background: #242429;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .nav-rail {
+      width: 52px;
+    }
+    .sidebar {
+      width: calc(100% - 52px);
+    }
+    .chat-area {
+      display: none;
+      width: 100%;
+    }
+    #app-screen.chat-open .nav-rail,
+    #app-screen.chat-open .sidebar {
+      display: none;
+    }
+    #app-screen.chat-open .chat-area {
+      display: flex;
+    }
+    .back-btn {
+      display: block;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ЭКРАН ВХОДА -->
+  <div id="login-screen">
+    <div class="logo-badge">T</div>
+    <h2>Вход в мессенджер</h2>
+    <p>Для каждого ника и пароля создаётся своё отдельное хранилище</p>
+    <input type="text" id="username-input" class="input-field" placeholder="Ваш никнейм">
+    <input type="password" id="pin-input" class="input-field" placeholder="Пароль или PIN">
+    <div id="login-error"></div>
+    <button type="button" id="login-btn" class="primary-btn">Войти в систему</button>
+  </div>
+
+  <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
+  <div id="app-screen">
+    <div class="nav-rail">
+      <div class="nav-icon active" title="Чаты">💬</div>
+      <div class="nav-icon" id="nav-new-chat" title="Новый контакт">➕</div>
+      <div class="nav-icon" id="nav-p2p" title="P2P узел">📡</div>
+      <div class="nav-icon bottom" id="nav-logout" title="Выйти">🚪</div>
+    </div>
+
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display: flex; align-items: center;">
+          <h1>Чаты</h1>
+          <span class="user-tag" id="user-greeting"></span>
+        </div>
+        <button type="button" class="new-chat-btn" id="header-new-chat" title="Новый чат">✎</button>
+      </div>
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="🔍 Поиск">
+      </div>
+      <div class="folders">
+        <div class="folder active" data-folder="all">📁 Все</div>
+        <div class="folder" data-folder="personal">📁 Личное</div>
+        <div class="folder" data-folder="work">📁 Разработка</div>
+      </div>
+      <div class="chat-list" id="chat-list"></div>
+    </div>
+
+    <div class="chat-area">
+      <div class="chat-header">
+        <div class="header-left">
+          <button type="button" class="back-btn" id="mobile-back-btn">‹</button>
+          <div class="chat-header-info">
+            <h3 id="current-chat-title">Выберите чат</h3>
+            <span id="current-chat-status">локальный узел готов</span>
+          </div>
+        </div>
+        <button type="button" class="connect-btn" id="header-p2p-btn">📡 P2P связь</button>
+      </div>
+
+      <div class="messages-container" id="messages-box"></div>
+
+      <div class="input-area">
+        <input type="text" id="message-input" placeholder="Сообщение...">
+        <button type="button" class="send-btn" id="send-msg-btn">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="new-chat-modal">
+    <div class="modal-card">
+      <h3>Новый чат</h3>
+      <p>Создайте отдельный диалог в своём хранилище.</p>
+      <input type="text" id="new-contact-name" class="input-field" placeholder="Имя контакта или группы">
+      <select id="new-contact-folder" class="input-field">
+        <option value="personal">Папка: Личное</option>
+        <option value="work">Папка: Разработка</option>
+      </select>
+      <div class="modal-actions">
+        <button type="button" class="secondary-btn" id="cancel-chat-btn">Отмена</button>
+        <button type="button" class="primary-btn" style="flex: 1;" id="confirm-chat-btn">Создать</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="p2p-modal">
+    <div class="modal-card">
+      <h3>Прямое соединение (P2P)</h3>
+      <p>Работает напрямую между устройствами без центрального сервера. Обменяйтесь кодами подключения с собеседником:</p>
+      <button type="button" class="secondary-btn" style="width: 100%; margin-bottom: 10px;" id="create-offer-btn">1. Создать код моего узла</button>
+      <textarea id="local-sdp" readonly placeholder="Здесь появится ваш код узла..."></textarea>
+      <textarea id="remote-sdp" placeholder="2. Вставьте сюда код узла собеседника..."></textarea>
+      <div class="modal-actions">
+        <button type="button" class="secondary-btn" id="close-p2p-btn">Закрыть</button>
+        <button type="button" class="primary-btn" style="flex: 1;" id="accept-remote-btn">Подключиться</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Безопасное хранилище (работает даже в строгих WebView и при просмотре файлов на Android)
+  var memoryFallback = {};
+  var safeStore = {
+    getItem: function(key) {
+      try {
+        var val = window.localStorage.getItem(key);
+        if (val !== null) return val;
+      } catch (e) {}
+      return Object.prototype.hasOwnProperty.call(memoryFallback, key) ? memoryFallback[key] : null;
+    },
+    setItem: function(key, val) {
+      memoryFallback[key] = String(val);
+      try {
+        window.localStorage.setItem(key, String(val));
+      } catch (e) {}
+    }
+  };
+
+  var currentVaultKey = null;
+  var appData = null;
+  var currentFolder = 'all';
+  var peerConnection = null;
+  var dataChannel = null;
+
+  function getTimeNow() {
+    var now = new Date();
+    var h = String(now.getHours());
+    var m = String(now.getMinutes());
+    if (h.length < 2) h = '0' + h;
+    if (m.length < 2) m = '0' + m;
+    return h + ':' + m;
+  }
+
+  function createFreshVault(username) {
+    return {
+      user: username,
+      activeChatId: 'saved',
+      chats: [
+        {
+          id: 'saved',
+          name: 'Избранное (' + username + ')',
+          folder: 'personal',
+          color: '#007aff',
+          messages: [
+            { text: 'Отдельное хранилище для «' + username + '» создано. Все сообщения видны только под этим ником и паролем.', type: 'incoming', time: getTimeNow() }
+          ]
+        }
+      ]
+    };
+  }
+
+  function saveVault() {
+    if (currentVaultKey && appData) {
+      safeStore.setItem(currentVaultKey, JSON.stringify(appData));
+    }
+  }
+
+  function showLoginError(msg) {
+    var errBox = document.getElementById('login-error');
+    errBox.innerText = msg;
+    errBox.style.display = 'block';
+  }
+
+  function hideLoginError() {
+    var errBox = document.getElementById('login-error');
+    errBox.innerText = '';
+    errBox.style.display = 'none';
+  }
+
+  function handleLogin() {
+    hideLoginError();
+    var rawName = document.getElementById('username-input').value.trim();
+    var password = document.getElementById('pin-input').value.trim();
+
+    if (!rawName) {
+      showLoginError('Введите никнейм!');
+      return;
+    }
+    if (!password) {
+      showLoginError('Введите пароль!');
+      return;
+    }
+
+    var normName = rawName.toLowerCase();
+    var passRegistryKey = 'trappist_v4_pass_' + normName;
+    var vaultKey = 'trappist_v4_vault_' + normName;
+
+    var savedPass = safeStore.getItem(passRegistryKey);
+
+    if (savedPass !== null) {
+      if (savedPass !== password) {
+        showLoginError('Неверный пароль для профиля «' + rawName + '»!');
+        return;
+      }
+      currentVaultKey = vaultKey;
+      var rawVault = safeStore.getItem(vaultKey);
+      appData = rawVault ? JSON.parse(rawVault) : createFreshVault(rawName);
+    } else {
+      safeStore.setItem(passRegistryKey, password);
+      currentVaultKey = vaultKey;
+      appData = createFreshVault(rawName);
+      saveVault();
+    }
+
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'flex';
+    document.getElementById('user-greeting').innerText = '@' + appData.user;
+    renderChatList();
+    openChat(appData.activeChatId, false);
+  }
+
+  function handleLogout() {
+    currentVaultKey = null;
+    appData = null;
+    document.getElementById('username-input').value = '';
+    document.getElementById('pin-input').value = '';
+    hideLoginError();
+    document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'block';
+  }
+
+  function renderChatList() {
+    var list = document.getElementById('chat-list');
+    var query = document.getElementById('search-input').value.toLowerCase();
+    list.innerHTML = '';
+
+    for (var i = 0; i < appData.chats.length; i++) {
+      var chat = appData.chats[i];
+      if (currentFolder !== 'all' && chat.folder !== currentFolder) continue;
+      if (query && chat.name.toLowerCase().indexOf(query) === -1) continue;
+
+      var lastMsg = chat.messages.length > 0 ? chat.messages[chat.messages.length - 1] : null;
+      var preview = lastMsg ? lastMsg.text : 'Нет сообщений';
+      var time = lastMsg ? lastMsg.time : '';
+      var initials = chat.name.slice(0, 2).toUpperCase();
+
+      var item = document.createElement('div');
+      item.className = 'chat-item' + (chat.id === appData.activeChatId ? ' active' : '');
+      (function(id) {
+        item.onclick = function() { openChat(id, true); };
+      })(chat.id);
+
+      var av = document.createElement('div');
+      av.className = 'avatar';
+      av.style.backgroundColor = chat.color;
+      av.innerText = initials;
+
+      var info = document.createElement('div');
+      info.className = 'chat-info';
+
+      var top = document.createElement('div');
+      top.className = 'chat-top';
+
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'chat-name';
+      nameSpan.innerText = chat.name;
+
+      var timeSpan = document.createElement('span');
+      timeSpan.className = 'chat-time';
+      timeSpan.innerText = time;
+
+      top.appendChild(nameSpan);
+      top.appendChild(timeSpan);
+
+      var prevDiv = document.createElement('div');
+      prevDiv.className = 'chat-preview';
+      prevDiv.innerText = preview;
+
+      info.appendChild(top);
+      info.appendChild(prevDiv);
+
+      item.appendChild(av);
+      item.appendChild(info);
+      list.appendChild(item);
+    }
+  }
+
+  function openChat(chatId, mobileSwitch) {
+    appData.activeChatId = chatId;
+    saveVault();
+
+    var chat = null;
+    for (var i = 0; i < appData.chats.length; i++) {
+      if (appData.chats[i].id === chatId) {
+        chat = appData.chats[i];
+        break;
+      }
+    }
+    if (!chat) return;
+
+    document.getElementById('current-chat-title').innerText = chat.name;
+    renderMessages();
+    renderChatList();
+
+    if (mobileSwitch && window.innerWidth <= 768) {
+      document.getElementById('app-screen').classList.add('chat-open');
+    }
+  }
+
+  function renderMessages() {
+    var box = document.getElementById('messages-box');
+    box.innerHTML = '';
+
+    var chat = null;
+    for (var i = 0; i < appData.chats.length; i++) {
+      if (appData.chats[i].id === appData.activeChatId) {
+        chat = appData.chats[i];
+        break;
+      }
+    }
+    if (!chat) return;
+
+    for (var j = 0; j < chat.messages.length; j++) {
+      var m = chat.messages[j];
+      var div = document.createElement('div');
+      div.className = 'message ' + m.type;
+      div.innerText = m.text;
+
+      var tSpan = document.createElement('span');
+      tSpan.className = 'msg-time';
+      tSpan.innerText = m.time;
+      div.appendChild(tSpan);
+
+      box.appendChild(div);
+    }
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function sendMessage() {
+    var input = document.getElementById('message-input');
+    var text = input.value.trim();
+    if (!text) return;
+
+    var chat = null;
+    for (var i = 0; i < appData.chats.length; i++) {
+      if (appData.chats[i].id === appData.activeChatId) {
+        chat = appData.chats[i];
+        break;
+      }
+    }
+    if (!chat) return;
+
+    var time = getTimeNow();
+    chat.messages.push({ text: text, type: 'outgoing', time: time });
+    saveVault();
+
+    if (dataChannel && dataChannel.readyState === 'open') {
+      dataChannel.send(JSON.stringify({ sender: appData.user, text: text }));
+    }
+
+    input.value = '';
+    renderMessages();
+    renderChatList();
+  }
+
+  function createNewChat() {
+    var name = document.getElementById('new-contact-name').value.trim();
+    var folder = document.getElementById('new-contact-folder').value;
+    if (!name) return;
+
+    var colors = ['#007aff', '#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+    var newChat = {
+      id: 'chat_' + Date.now(),
+      name: name,
+      folder: folder,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      messages: []
+    };
+
+    appData.chats.unshift(newChat);
+    saveVault();
+    document.getElementById('new-contact-name').value = '';
+    document.getElementById('new-chat-modal').style.display = 'none';
+    openChat(newChat.id, true);
+  }
+
+  // P2P WebRTC узел
+  function initPeer() {
+    var RTCPeer = window.RTCPeerConnection || window.webkitRTCPeerConnection;
+    if (!RTCPeer) {
+      alert('Ваш просмотрщик файлов не поддерживает WebRTC. Откройте файл через полноценный браузер (Chrome / Edge).');
+      return false;
+    }
+    peerConnection = new RTCPeer({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+
+    peerConnection.onicecandidate = function(e) {
+      if (!e.candidate) {
+        var sdpStr = JSON.stringify(peerConnection.localDescription);
+        document.getElementById('local-sdp').value = btoa(unescape(encodeURIComponent(sdpStr)));
+      }
+    };
+
+    peerConnection.ondatachannel = function(e) {
+      setupDataChannel(e.channel);
+    };
+    return true;
+  }
+
+  function setupDataChannel(channel) {
+    dataChannel = channel;
+    dataChannel.onopen = function() {
+      document.getElementById('current-chat-status').innerText = '● P2P узел активен';
+      document.getElementById('p2p-modal').style.display = 'none';
+    };
+    dataChannel.onmessage = function(e) {
+      var data = JSON.parse(e.data);
+      for (var i = 0; i < appData.chats.length; i++) {
+        if (appData.chats[i].id === appData.activeChatId) {
+          appData.chats[i].messages.push({ text: data.sender + ': ' + data.text, type: 'incoming', time: getTimeNow() });
+          saveVault();
+          renderMessages();
+          renderChatList();
+          break;
+        }
+      }
+    };
+  }
+
+  function createOffer() {
+    if (!initPeer()) return;
+    var channel = peerConnection.createDataChannel('chat');
+    setupDataChannel(channel);
+    peerConnection.createOffer().then(function(offer) {
+      return peerConnection.setLocalDescription(offer);
+    });
+  }
+
+  function acceptRemote() {
+    var raw = document.getElementById('remote-sdp').value.trim();
+    if (!raw) return;
+    var desc = JSON.parse(decodeURIComponent(escape(atob(raw))));
+
+    if (!peerConnection && !initPeer()) return;
+    peerConnection.setRemoteDescription(desc).then(function() {
+      if (desc.type === 'offer') {
+        peerConnection.createAnswer().then(function(answer) {
+          return peerConnection.setLocalDescription(answer);
+        });
+      }
+    });
+  }
+
+  // Привязка всех событий после загрузки страницы
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('login-btn').onclick = handleLogin;
+    document.getElementById('pin-input').onkeypress = function(e) {
+      if (e.key === 'Enter') handleLogin();
+    };
+    document.getElementById('nav-logout').onclick = handleLogout;
+
+    document.getElementById('nav-new-chat').onclick = function() {
+      document.getElementById('new-chat-modal').style.display = 'flex';
+    };
+    document.getElementById('header-new-chat').onclick = function() {
+      document.getElementById('new-chat-modal').style.display = 'flex';
+    };
+    document.getElementById('cancel-chat-btn').onclick = function() {
+      document.getElementById('new-chat-modal').style.display = 'none';
+    };
+    document.getElementById('confirm-chat-btn').onclick = createNewChat;
+
+    document.getElementById('nav-p2p').onclick = function() {
+      document.getElementById('p2p-modal').style.display = 'flex';
+    };
+    document.getElementById('header-p2p-btn').onclick = function() {
+      document.getElementById('p2p-modal').style.display = 'flex';
+    };
+    document.getElementById('close-p2p-btn').onclick = function() {
+      document.getElementById('p2p-modal').style.display = 'none';
+    };
+    document.getElementById('create-offer-btn').onclick = createOffer;
+    document.getElementById('accept-remote-btn').onclick = acceptRemote;
+
+    document.getElementById('mobile-back-btn').onclick = function() {
+      document.getElementById('app-screen').classList.remove('chat-open');
+    };
+
+    document.getElementById('send-msg-btn').onclick = sendMessage;
+    document.getElementById('message-input').onkeypress = function(e) {
+      if (e.key === 'Enter') sendMessage();
+    };
+
+    document.getElementById('search-input').oninput = renderChatList;
+
+    var folders = document.querySelectorAll('.folder');
+    for (var i = 0; i < folders.length; i++) {
+      folders[i].onclick = function() {
+        for (var j = 0; j < folders.length; j++) folders[j].classList.remove('active');
+        this.classList.add('active');
+        currentFolder = this.getAttribute('data-folder');
+        renderChatList();
+      };
+    }
+  });
+</script>
+</body>
+</html>
