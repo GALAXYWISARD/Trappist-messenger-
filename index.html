@@ -4,993 +4,1196 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>TRAPPIST Messenger</title>
+<script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <style>
+  :root {
+    --bg-deep: #070913;
+    --bg-card: #111528;
+    --bg-input: #0b0e1c;
+    --border-glow: #232a4d;
+    --accent-purple: #5c4dff;
+    --accent-cyan: #00d2ff;
+    --accent-green: #00b894;
+    --accent-red: #ff4757;
+    --text-main: #ffffff;
+    --text-muted: #8b95b5;
+  }
+
   * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    -webkit-tap-highlight-color: transparent;
   }
 
   body {
-    background-color: #0b0b0d;
-    color: #ffffff;
-    height: 100vh;
-    height: 100dvh;
-    overflow: hidden;
+    background-color: var(--bg-deep);
+    color: var(--text-main);
+    min-height: 100vh;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 2px),
+      radial-gradient(white, rgba(255,255,255,.1) 1px, transparent 1px);
+    background-size: 130px 130px, 70px 70px;
+    background-position: 0 0, 35px 35px;
+  }
+
+  /* Модальное окно соглашения */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 7, 16, 0.96);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
     align-items: center;
+    justify-content: center;
+    padding: 16px;
   }
 
-  /* ЭКРАН ВХОДА */
-  #login-screen {
-    background-color: #16161a;
-    padding: 32px 24px;
-    border-radius: 20px;
-    width: 92%;
-    max-width: 380px;
-    text-align: center;
-    border: 1px solid #27272c;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
-  }
-
-  .logo-badge {
-    width: 64px;
-    height: 64px;
-    background: linear-gradient(135deg, #007aff, #00c6ff);
+  .modal-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
     border-radius: 18px;
-    margin: 0 auto 20px;
+    width: 100%;
+    max-width: 460px;
+    padding: 20px;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 30px;
-    font-weight: bold;
-    box-shadow: 0 0 25px rgba(0, 122, 255, 0.4);
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
   }
 
-  #login-screen h2 {
-    font-size: 22px;
+  .modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    text-align: center;
+  }
+
+  .terms-scroll {
+    background: var(--bg-input);
+    border: 1px solid var(--border-glow);
+    border-radius: 12px;
+    padding: 14px;
+    height: 250px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #cfd6eb;
+  }
+
+  .terms-scroll h4 {
+    color: #ffffff;
+    margin: 10px 0 4px;
+    font-size: 14px;
+  }
+
+  .terms-scroll h4:first-child {
+    margin-top: 0;
+  }
+
+  .terms-scroll p {
     margin-bottom: 8px;
   }
 
-  #login-screen p {
-    color: #8e8e93;
-    font-size: 13px;
-    margin-bottom: 24px;
+  .terms-status {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    min-height: 18px;
   }
 
-  .input-field {
-    width: 100%;
-    padding: 14px 16px;
-    margin-bottom: 14px;
-    border-radius: 12px;
-    border: 1px solid #2c2c32;
-    background-color: #0b0b0d;
+  .terms-status.warn {
+    color: #ffa502;
+  }
+
+  .terms-status.ok {
+    color: var(--accent-green);
+  }
+
+  /* Шапка */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(17, 21, 40, 0.9);
+    border-bottom: 1px solid var(--border-glow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00d2ff 0%, #3a47d5 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 21px;
+    font-weight: 800;
     color: #ffffff;
+    box-shadow: 0 0 14px rgba(0, 210, 255, 0.45);
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .brand-info h1 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .brand-info span {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: block;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-pill {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(255, 71, 87, 0.15);
+    color: var(--accent-red);
+    border: 1px solid rgba(255, 71, 87, 0.35);
+    white-space: nowrap;
+  }
+
+  .status-pill.online {
+    background: rgba(0, 184, 148, 0.15);
+    color: var(--accent-green);
+    border-color: rgba(0, 184, 148, 0.4);
+  }
+
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border-glow);
+    background: var(--bg-input);
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .icon-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .icon-btn:not(:disabled):active {
+    transform: scale(0.94);
+  }
+
+  /* Основной контейнер */
+  .container {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .step-title {
     font-size: 15px;
+    font-weight: 700;
+    color: #9ba6ff;
+  }
+
+  .btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .btn {
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #fff;
+    transition: 0.2s;
+  }
+
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .btn:not(:disabled):active {
+    transform: scale(0.98);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #6c5ce7, #4834d4);
+  }
+
+  .btn-green {
+    background: linear-gradient(135deg, #00b894, #009473);
+  }
+
+  .btn-dark {
+    background: #1c223d;
+    border: 1px solid var(--border-glow);
+  }
+
+  .btn-full {
+    width: 100%;
+  }
+
+  textarea.code-box {
+    width: 100%;
+    height: 82px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-glow);
+    border-radius: 12px;
+    padding: 10px 12px;
+    color: #e1e7ff;
+    font-family: monospace;
+    font-size: 12px;
+    resize: none;
     outline: none;
   }
 
-  .input-field:focus {
-    border-color: #007aff;
+  textarea.code-box:focus {
+    border-color: var(--accent-cyan);
   }
 
-  #login-error {
-    color: #ef4444;
-    font-size: 13px;
-    margin-bottom: 14px;
-    min-height: 18px;
+  /* Блок QR */
+  .qr-preview {
     display: none;
-  }
-
-  .primary-btn {
-    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
     padding: 14px;
-    border-radius: 12px;
-    border: none;
-    background-color: #007aff;
-    color: #ffffff;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
+    border-radius: 14px;
+    margin-top: 4px;
   }
 
-  .primary-btn:active {
-    background-color: #0062cc;
-  }
-
-  /* ОСНОВНОЕ ПРИЛОЖЕНИЕ */
-  #app-screen {
-    display: none;
+  .qr-preview canvas, .qr-preview img {
+    max-width: 240px;
     width: 100%;
-    height: 100vh;
-    height: 100dvh;
-    background-color: #121215;
+    height: auto;
+    display: block;
   }
 
-  .nav-rail {
-    width: 60px;
-    background-color: #161619;
-    border-right: 1px solid #222226;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 16px 0;
-    gap: 20px;
-    flex-shrink: 0;
-  }
-
-  .nav-icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: #71717a;
-    cursor: pointer;
-    font-size: 20px;
-  }
-
-  .nav-icon.active {
-    background-color: #27272c;
-    color: #38bdf8;
-  }
-
-  .nav-icon.bottom {
-    margin-top: auto;
-    color: #ef4444;
-  }
-
-  .sidebar {
-    width: 340px;
-    background-color: #18181c;
-    border-right: 1px solid #222226;
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-  }
-
-  .sidebar-header {
-    padding: 18px 16px 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .sidebar-header h1 {
-    font-size: 20px;
-    font-weight: 700;
-  }
-
-  .user-tag {
+  .qr-hint {
+    color: #111528;
     font-size: 12px;
-    color: #38bdf8;
-    background: #242429;
-    padding: 4px 10px;
-    border-radius: 8px;
-    margin-left: 8px;
+    font-weight: 600;
+    text-align: center;
   }
 
-  .new-chat-btn {
-    background: #27272c;
-    border: none;
-    color: #38bdf8;
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    font-size: 18px;
-    cursor: pointer;
-  }
-
-  .search-box {
-    padding: 0 16px 12px;
-  }
-
-  .search-box input {
+  /* Чат */
+  .chat-screen {
+    display: none;
+    flex-direction: column;
+    height: calc(100vh - 65px);
+    max-width: 600px;
     width: 100%;
+    margin: 0 auto;
+  }
+
+  .messages-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .msg {
+    max-width: 80%;
     padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  .msg.me {
+    align-self: flex-end;
+    background: linear-gradient(135deg, #5c4dff, #3f32cc);
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg.peer {
+    align-self: flex-start;
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-bottom-left-radius: 4px;
+  }
+
+  .msg.sys {
+    align-self: center;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    max-width: 92%;
+    text-align: center;
+  }
+
+  .msg img {
+    max-width: 100%;
     border-radius: 10px;
-    border: none;
-    background-color: #242429;
-    color: #ffffff;
+    margin-top: 4px;
+    display: block;
+  }
+
+  .file-link {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 8px;
+    color: var(--accent-cyan);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .chat-input-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-glow);
+  }
+
+  .chat-input-bar input[type="text"] {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border-glow);
+    border-radius: 20px;
+    padding: 10px 14px;
+    color: #fff;
     font-size: 14px;
     outline: none;
   }
 
-  .folders {
-    display: flex;
-    gap: 16px;
-    padding: 0 16px 10px;
-    border-bottom: 1px solid #222226;
-    font-size: 13px;
-    color: #8e8e93;
-  }
-
-  .folder {
-    cursor: pointer;
-    padding-bottom: 6px;
-  }
-
-  .folder.active {
-    color: #38bdf8;
-    border-bottom: 2px solid #38bdf8;
-    font-weight: 600;
-  }
-
-  .chat-list {
-    flex: 1;
-    overflow-y: auto;
-  }
-
-  .chat-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    gap: 12px;
-    cursor: pointer;
-    border-bottom: 1px solid rgba(255,255,255,0.03);
-  }
-
-  .chat-item.active {
-    background-color: #27272c;
-  }
-
-  .avatar {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: 700;
-    font-size: 16px;
-    color: #ffffff;
-    flex-shrink: 0;
-  }
-
-  .chat-info {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .chat-top {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 4px;
-  }
-
-  .chat-name {
-    font-weight: 600;
-    font-size: 15px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .chat-time {
-    font-size: 11px;
-    color: #71717a;
-  }
-
-  .chat-preview {
-    font-size: 13px;
-    color: #8e8e93;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* ОКНО ПЕРЕПИСКИ */
-  .chat-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background-color: #0b0b0d;
-    min-width: 0;
-  }
-
-  .chat-header {
-    height: 62px;
-    padding: 0 16px;
-    border-bottom: 1px solid #1f1f24;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background-color: #121215;
-    flex-shrink: 0;
-  }
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .back-btn {
-    display: none;
-    background: none;
-    border: none;
-    color: #007aff;
-    font-size: 26px;
-    cursor: pointer;
-    padding-right: 4px;
-  }
-
-  .chat-header-info h3 {
-    font-size: 16px;
-    font-weight: 600;
-  }
-
-  .chat-header-info span {
-    font-size: 12px;
-    color: #34c759;
-  }
-
-  .connect-btn {
-    background-color: #242429;
-    color: #38bdf8;
-    border: 1px solid #323238;
-    padding: 7px 12px;
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .messages-container {
-    flex: 1;
-    padding: 16px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .message {
-    max-width: 78%;
-    padding: 11px 15px;
-    border-radius: 18px;
-    font-size: 14.5px;
-    line-height: 1.4;
-    word-wrap: break-word;
-  }
-
-  .message.incoming {
-    background-color: #26262a;
-    color: #f4f4f5;
-    align-self: flex-start;
-    border-bottom-left-radius: 4px;
-  }
-
-  .message.outgoing {
-    background-color: #007aff;
-    color: #ffffff;
-    align-self: flex-end;
-    border-bottom-right-radius: 4px;
-  }
-
-  .msg-time {
-    display: block;
-    font-size: 10px;
-    opacity: 0.65;
-    margin-top: 4px;
-    text-align: right;
-  }
-
-  .input-area {
-    padding: 12px 16px;
-    background-color: #121215;
-    border-top: 1px solid #1f1f24;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-shrink: 0;
-  }
-
-  .input-area input {
-    flex: 1;
-    padding: 12px 16px;
-    border-radius: 22px;
-    border: none;
-    background-color: #242429;
-    color: #ffffff;
-    font-size: 15px;
-    outline: none;
-  }
-
-  .send-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    border: none;
-    background-color: #007aff;
-    color: #ffffff;
-    font-size: 18px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  /* МОДАЛЬНЫЕ ОКНА */
-  .modal {
+  /* Окно QR-сканера */
+  .scanner-modal {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.85);
-    justify-content: center;
+    background: rgba(5, 7, 16, 0.95);
+    z-index: 9000;
+    flex-direction: column;
     align-items: center;
-    z-index: 100;
+    justify-content: center;
     padding: 16px;
+    gap: 14px;
   }
 
-  .modal-card {
-    background: #18181c;
-    border: 1px solid #2c2c32;
-    border-radius: 18px;
-    padding: 20px;
+  .scanner-modal video {
     width: 100%;
-    max-width: 400px;
+    max-width: 360px;
+    border-radius: 16px;
+    border: 2px solid var(--accent-cyan);
+    background: #000;
   }
 
-  .modal-card h3 {
-    margin-bottom: 10px;
-    font-size: 18px;
+  /* Окно звонка */
+  .call-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #070913;
+    z-index: 9500;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 16px;
   }
 
-  .modal-card p {
-    font-size: 13px;
-    color: #a1a1aa;
-    margin-bottom: 14px;
-    line-height: 1.4;
-  }
-
-  .modal-card textarea {
+  .video-grid {
+    position: relative;
     width: 100%;
-    height: 75px;
-    background: #0b0b0d;
-    border: 1px solid #2c2c32;
-    border-radius: 10px;
-    color: #38bdf8;
-    padding: 10px;
-    font-size: 11px;
-    margin-bottom: 10px;
-    resize: none;
-  }
-
-  .modal-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 8px;
-  }
-
-  .secondary-btn {
+    max-width: 480px;
     flex: 1;
-    padding: 11px;
-    border-radius: 10px;
-    border: 1px solid #323238;
-    background: #242429;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0f1326;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid var(--border-glow);
+  }
+
+  #remoteVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  #localVideo {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 110px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 2px solid var(--accent-cyan);
+    background: #000;
+  }
+
+  .call-controls {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .call-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    font-size: 20px;
     color: #fff;
     cursor: pointer;
-    font-weight: 600;
-  }
-
-  @media (max-width: 768px) {
-    .nav-rail {
-      width: 52px;
-    }
-    .sidebar {
-      width: calc(100% - 52px);
-    }
-    .chat-area {
-      display: none;
-      width: 100%;
-    }
-    #app-screen.chat-open .nav-rail,
-    #app-screen.chat-open .sidebar {
-      display: none;
-    }
-    #app-screen.chat-open .chat-area {
-      display: flex;
-    }
-    .back-btn {
-      display: block;
-    }
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 </style>
 </head>
 <body>
 
-  <!-- ЭКРАН ВХОДА -->
-  <div id="login-screen">
-    <div class="logo-badge">T</div>
-    <h2>Вход в мессенджер</h2>
-    <p>Для каждого ника и пароля создаётся своё отдельное хранилище</p>
-    <input type="text" id="username-input" class="input-field" placeholder="Ваш никнейм">
-    <input type="password" id="pin-input" class="input-field" placeholder="Пароль или PIN">
-    <div id="login-error"></div>
-    <button type="button" id="login-btn" class="primary-btn">Войти в систему</button>
+<!-- Модальное окно политики -->
+<div class="modal-overlay" id="termsModal">
+  <div class="modal-box">
+    <div class="modal-title">Политика конфиденциальности и правила</div>
+    <div class="terms-scroll" id="termsScroll">
+      <h4>1. Общие положения</h4>
+      <p>1.1. Настоящий документ регулирует порядок использования программного обеспечения «TRAPPIST Messenger» (далее — Приложение) и определяет политику в отношении обработки и защиты информации пользователей.</p>
+      <p>1.2. Начиная использование Приложения, Пользователь подтверждает, что полностью ознакомился с условиями настоящего Соглашения, понимает их и принимает в полном объеме.</p>
+
+      <h4>2. Принцип работы и конфиденциальность (P2P)</h4>
+      <p>2.1. Приложение функционирует на базе технологии децентрализованной прямой связи «устройство — устройство» (Peer-to-Peer / WebRTC).</p>
+      <p>2.2. Разработчик не осуществляет сбор, запись, хранение или передачу третьим лицам содержимого текстовых сообщений, файлов и истории переписки. Вся переписка существует исключительно в оперативной памяти устройств участников на время активной сессии.</p>
+      <p>2.3. Для преодоления сетевых ограничений (NAT) и установления прямого соединения используются транзитные STUN/TURN-серверы. На момент установки соединения им технически передаются IP-адреса подключения без ведения журналов логов.</p>
+
+      <h4>3. Локальная модерация и безопасность</h4>
+      <p>3.1. В целях предотвращения использования Приложения в противоправных целях в клиентскую часть встроен автоматический локальный фильтр запрещенных слов и выражений.</p>
+      <p>3.2. Проверка текста осуществляется исключительно локально на устройстве Пользователя до момента отправки данных в сеть. Сообщения, содержащие признаки противоправного контента, блокируются на устройстве отправителя.</p>
+
+      <h4>4. Запрет противоправной деятельности</h4>
+      <p>4.1. Пользователь обязуется использовать Приложение исключительно в законных целях и соблюдать законодательство Российской Федерации.</p>
+      <p>4.2. Категорически запрещается использовать Приложение для подготовки или пропаганды терроризма и экстремизма, распространения сведений об оружии, взрывчатых веществах, наркотических средствах, мошенничества и угроз.</p>
+
+      <h4>5. Отказ от ответственности</h4>
+      <p>5.1. Приложение предоставляется по принципу «как есть» (AS IS) в ознакомительных и коммуникационных целях.</p>
+      <p>5.2. Разработчик не контролирует коммуникации между пользователями и не несет ответственности за содержание передаваемой ими информации. Всю ответственность за соблюдение законов Пользователь несет самостоятельно.</p>
+    </div>
+    <div class="terms-status" id="termsStatus">Прочитайте правила до конца (осталось 10 сек.)</div>
+    <button class="btn btn-primary btn-full" id="acceptTermsBtn" disabled>Подождите 10 сек. и пролистайте вниз</button>
   </div>
+</div>
 
-  <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
-  <div id="app-screen">
-    <div class="nav-rail">
-      <div class="nav-icon active" title="Чаты">💬</div>
-      <div class="nav-icon" id="nav-new-chat" title="Новый контакт">➕</div>
-      <div class="nav-icon" id="nav-p2p" title="P2P узел">📡</div>
-      <div class="nav-icon bottom" id="nav-logout" title="Выйти">🚪</div>
-    </div>
-
-    <div class="sidebar">
-      <div class="sidebar-header">
-        <div style="display: flex; align-items: center;">
-          <h1>Чаты</h1>
-          <span class="user-tag" id="user-greeting"></span>
-        </div>
-        <button type="button" class="new-chat-btn" id="header-new-chat" title="Новый чат">✎</button>
-      </div>
-      <div class="search-box">
-        <input type="text" id="search-input" placeholder="🔍 Поиск">
-      </div>
-      <div class="folders">
-        <div class="folder active" data-folder="all">📁 Все</div>
-        <div class="folder" data-folder="personal">📁 Личное</div>
-        <div class="folder" data-folder="work">📁 Разработка</div>
-      </div>
-      <div class="chat-list" id="chat-list"></div>
-    </div>
-
-    <div class="chat-area">
-      <div class="chat-header">
-        <div class="header-left">
-          <button type="button" class="back-btn" id="mobile-back-btn">‹</button>
-          <div class="chat-header-info">
-            <h3 id="current-chat-title">Выберите чат</h3>
-            <span id="current-chat-status">локальный узел готов</span>
-          </div>
-        </div>
-        <button type="button" class="connect-btn" id="header-p2p-btn">📡 P2P связь</button>
-      </div>
-
-      <div class="messages-container" id="messages-box"></div>
-
-      <div class="input-area">
-        <input type="text" id="message-input" placeholder="Сообщение...">
-        <button type="button" class="send-btn" id="send-msg-btn">➤</button>
-      </div>
+<!-- Шапка -->
+<header class="header">
+  <div class="brand">
+    <div class="logo-circle">T</div>
+    <div class="brand-info">
+      <h1>TRAPPIST</h1>
+      <span id="subStatus">P2P Узел готов</span>
     </div>
   </div>
+  <div class="header-right">
+    <div class="status-pill" id="connBadge">Не в сети</div>
+    <button class="icon-btn" id="audioCallBtn" title="Аудиозвонок" disabled>📞</button>
+    <button class="icon-btn" id="videoCallBtn" title="Видеозвонок" disabled>📹</button>
+  </div>
+</header>
 
-  <div class="modal" id="new-chat-modal">
-    <div class="modal-card">
-      <h3>Новый чат</h3>
-      <p>Создайте отдельный диалог в своём хранилище.</p>
-      <input type="text" id="new-contact-name" class="input-field" placeholder="Имя контакта или группы">
-      <select id="new-contact-folder" class="input-field">
-        <option value="personal">Папка: Личное</option>
-        <option value="work">Папка: Разработка</option>
-      </select>
-      <div class="modal-actions">
-        <button type="button" class="secondary-btn" id="cancel-chat-btn">Отмена</button>
-        <button type="button" class="primary-btn" style="flex: 1;" id="confirm-chat-btn">Создать</button>
-      </div>
+<!-- Экран подключения -->
+<main class="container" id="connectScreen">
+  <div class="card">
+    <div class="step-title">Шаг 1. Ваш код / QR для друга</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="createOfferBtn">1. Создать код</button>
+      <button class="btn btn-dark" id="copyMyCodeBtn">📋 Копировать</button>
+    </div>
+    <button class="btn btn-dark btn-full" id="downloadQrBtn" disabled>💾 Скачать QR</button>
+    <textarea class="code-box" id="myCodeBox" readonly placeholder="Нажмите «1. Создать код» (или сюда появится ответный код после сканирования кода друга)..."></textarea>
+    <div class="qr-preview" id="qrPreviewBox">
+      <canvas id="qrCanvas"></canvas>
+      <div class="qr-hint">Покажите этот QR другу или скачайте его</div>
     </div>
   </div>
 
-  <div class="modal" id="p2p-modal">
-    <div class="modal-card">
-      <h3>Прямое соединение (P2P)</h3>
-      <p>Работает напрямую между устройствами без центрального сервера. Обменяйтесь кодами подключения с собеседником:</p>
-      <button type="button" class="secondary-btn" style="width: 100%; margin-bottom: 10px;" id="create-offer-btn">1. Создать код моего узла</button>
-      <textarea id="local-sdp" readonly placeholder="Здесь появится ваш код узла..."></textarea>
-      <textarea id="remote-sdp" placeholder="2. Вставьте сюда код узла собеседника..."></textarea>
-      <div class="modal-actions">
-        <button type="button" class="secondary-btn" id="close-p2p-btn">Закрыть</button>
-        <button type="button" class="primary-btn" style="flex: 1;" id="accept-remote-btn">Подключиться</button>
-      </div>
+  <div class="card">
+    <div class="step-title">Шаг 2. Код / QR от друга</div>
+    <div class="btn-row">
+      <button class="btn btn-green" id="scanQrCamBtn">📷 Сканировать QR</button>
+      <button class="btn btn-dark" id="scanQrFileBtn">🖼️ QR из галереи</button>
+      <input type="file" id="qrFileInput" accept="image/*" style="display:none;">
     </div>
+    <textarea class="code-box" id="peerCodeBox" placeholder="Вставьте код друга сюда (TRP2:...) или отсканируйте QR выше..."></textarea>
+    <button class="btn btn-primary btn-full" id="connectBtn">🔗 Подключиться вручную</button>
   </div>
+</main>
+
+<!-- Экран чата -->
+<section class="chat-screen" id="chatScreen">
+  <div class="messages-area" id="messagesArea">
+    <div class="msg sys">Защищенное P2P-соединение установлено. Сообщения передаются напрямую без серверов.</div>
+  </div>
+  <div class="chat-input-bar">
+    <button class="icon-btn" id="attachBtn" title="Отправить фото или файл">📎</button>
+    <input type="file" id="fileInput" style="display:none;">
+    <input type="text" id="msgInput" placeholder="Сообщение..." autocomplete="off">
+    <button class="icon-btn" id="sendBtn" style="background: var(--accent-purple); border:none;">➤</button>
+  </div>
+</section>
+
+<!-- Модальное окно QR-сканера -->
+<div class="scanner-modal" id="scannerModal">
+  <div style="font-weight:700; font-size:16px;">Наведите камеру на QR-код друга</div>
+  <video id="scannerVideo" playsinline muted></video>
+  <canvas id="scannerCanvas" style="display:none;"></canvas>
+  <button class="btn btn-dark" id="closeScannerBtn" style="width:200px;">Закрыть камеру</button>
+</div>
+
+<!-- Модальное окно звонка -->
+<div class="call-modal" id="callModal">
+  <div style="font-weight:700; font-size:16px;" id="callStatusText">Соединение...</div>
+  <div class="video-grid">
+    <video id="remoteVideo" autoplay playsinline></video>
+    <video id="localVideo" autoplay playsinline muted></video>
+  </div>
+  <div class="call-controls">
+    <button class="call-btn" id="toggleMicBtn" style="background:#232a4d;">🎤</button>
+    <button class="call-btn" id="toggleCamBtn" style="background:#232a4d;">📷</button>
+    <button class="call-btn" id="endCallBtn" style="background:var(--accent-red);">📵</button>
+  </div>
+</div>
 
 <script>
-  // Безопасное хранилище (работает даже в строгих WebView и при просмотре файлов на Android)
-  var memoryFallback = {};
-  var safeStore = {
-    getItem: function(key) {
-      try {
-        var val = window.localStorage.getItem(key);
-        if (val !== null) return val;
-      } catch (e) {}
-      return Object.prototype.hasOwnProperty.call(memoryFallback, key) ? memoryFallback[key] : null;
-    },
-    setItem: function(key, val) {
-      memoryFallback[key] = String(val);
-      try {
-        window.localStorage.setItem(key, String(val));
-      } catch (e) {}
-    }
-  };
+  /* ================= 1. ИСПРАВЛЕННЫЙ ТАЙМЕР И ПОЛИТИКА ================= */
+  (function initAgreement() {
+    const modal = document.getElementById('termsModal');
+    const scrollBox = document.getElementById('termsScroll');
+    const statusEl = document.getElementById('termsStatus');
+    const acceptBtn = document.getElementById('acceptTermsBtn');
 
-  var currentVaultKey = null;
-  var appData = null;
-  var currentFolder = 'all';
-  var peerConnection = null;
-  var dataChannel = null;
-
-  function getTimeNow() {
-    var now = new Date();
-    var h = String(now.getHours());
-    var m = String(now.getMinutes());
-    if (h.length < 2) h = '0' + h;
-    if (m.length < 2) m = '0' + m;
-    return h + ':' + m;
-  }
-
-  function createFreshVault(username) {
-    return {
-      user: username,
-      activeChatId: 'saved',
-      chats: [
-        {
-          id: 'saved',
-          name: 'Избранное (' + username + ')',
-          folder: 'personal',
-          color: '#007aff',
-          messages: [
-            { text: 'Отдельное хранилище для «' + username + '» создано. Все сообщения видны только под этим ником и паролем.', type: 'incoming', time: getTimeNow() }
-          ]
-        }
-      ]
-    };
-  }
-
-  function saveVault() {
-    if (currentVaultKey && appData) {
-      safeStore.setItem(currentVaultKey, JSON.stringify(appData));
-    }
-  }
-
-  function showLoginError(msg) {
-    var errBox = document.getElementById('login-error');
-    errBox.innerText = msg;
-    errBox.style.display = 'block';
-  }
-
-  function hideLoginError() {
-    var errBox = document.getElementById('login-error');
-    errBox.innerText = '';
-    errBox.style.display = 'none';
-  }
-
-  function handleLogin() {
-    hideLoginError();
-    var rawName = document.getElementById('username-input').value.trim();
-    var password = document.getElementById('pin-input').value.trim();
-
-    if (!rawName) {
-      showLoginError('Введите никнейм!');
-      return;
-    }
-    if (!password) {
-      showLoginError('Введите пароль!');
+    if (localStorage.getItem('trappist_terms_accepted_v3') === '1') {
+      modal.style.display = 'none';
       return;
     }
 
-    var normName = rawName.toLowerCase();
-    var passRegistryKey = 'trappist_v4_pass_' + normName;
-    var vaultKey = 'trappist_v4_vault_' + normName;
+    let secondsLeft = 10;
+    let scrolledToBottom = false;
+    let lastScrollTime = Date.now();
+    let lastScrollTop = 0;
+    let fastScrollWarned = false;
 
-    var savedPass = safeStore.getItem(passRegistryKey);
+    function updateAcceptState() {
+      const canAccept = (secondsLeft <= 0) && scrolledToBottom;
+      acceptBtn.disabled = !canAccept;
 
-    if (savedPass !== null) {
-      if (savedPass !== password) {
-        showLoginError('Неверный пароль для профиля «' + rawName + '»!');
-        return;
-      }
-      currentVaultKey = vaultKey;
-      var rawVault = safeStore.getItem(vaultKey);
-      appData = rawVault ? JSON.parse(rawVault) : createFreshVault(rawName);
-    } else {
-      safeStore.setItem(passRegistryKey, password);
-      currentVaultKey = vaultKey;
-      appData = createFreshVault(rawName);
-      saveVault();
-    }
-
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display = 'flex';
-    document.getElementById('user-greeting').innerText = '@' + appData.user;
-    renderChatList();
-    openChat(appData.activeChatId, false);
-  }
-
-  function handleLogout() {
-    currentVaultKey = null;
-    appData = null;
-    document.getElementById('username-input').value = '';
-    document.getElementById('pin-input').value = '';
-    hideLoginError();
-    document.getElementById('app-screen').style.display = 'none';
-    document.getElementById('login-screen').style.display = 'block';
-  }
-
-  function renderChatList() {
-    var list = document.getElementById('chat-list');
-    var query = document.getElementById('search-input').value.toLowerCase();
-    list.innerHTML = '';
-
-    for (var i = 0; i < appData.chats.length; i++) {
-      var chat = appData.chats[i];
-      if (currentFolder !== 'all' && chat.folder !== currentFolder) continue;
-      if (query && chat.name.toLowerCase().indexOf(query) === -1) continue;
-
-      var lastMsg = chat.messages.length > 0 ? chat.messages[chat.messages.length - 1] : null;
-      var preview = lastMsg ? lastMsg.text : 'Нет сообщений';
-      var time = lastMsg ? lastMsg.time : '';
-      var initials = chat.name.slice(0, 2).toUpperCase();
-
-      var item = document.createElement('div');
-      item.className = 'chat-item' + (chat.id === appData.activeChatId ? ' active' : '');
-      (function(id) {
-        item.onclick = function() { openChat(id, true); };
-      })(chat.id);
-
-      var av = document.createElement('div');
-      av.className = 'avatar';
-      av.style.backgroundColor = chat.color;
-      av.innerText = initials;
-
-      var info = document.createElement('div');
-      info.className = 'chat-info';
-
-      var top = document.createElement('div');
-      top.className = 'chat-top';
-
-      var nameSpan = document.createElement('span');
-      nameSpan.className = 'chat-name';
-      nameSpan.innerText = chat.name;
-
-      var timeSpan = document.createElement('span');
-      timeSpan.className = 'chat-time';
-      timeSpan.innerText = time;
-
-      top.appendChild(nameSpan);
-      top.appendChild(timeSpan);
-
-      var prevDiv = document.createElement('div');
-      prevDiv.className = 'chat-preview';
-      prevDiv.innerText = preview;
-
-      info.appendChild(top);
-      info.appendChild(prevDiv);
-
-      item.appendChild(av);
-      item.appendChild(info);
-      list.appendChild(item);
-    }
-  }
-
-  function openChat(chatId, mobileSwitch) {
-    appData.activeChatId = chatId;
-    saveVault();
-
-    var chat = null;
-    for (var i = 0; i < appData.chats.length; i++) {
-      if (appData.chats[i].id === chatId) {
-        chat = appData.chats[i];
-        break;
+      if (canAccept) {
+        statusEl.textContent = 'Вы ознакомились с правилами. Доступ открыт.';
+        statusEl.className = 'terms-status ok';
+        acceptBtn.textContent = 'Принимаю условия и войти';
+      } else if (secondsLeft > 0 && !scrolledToBottom) {
+        statusEl.textContent = `Пролистайте текст вниз и подождите ${secondsLeft} сек.`;
+        acceptBtn.textContent = `Ожидание (${secondsLeft} сек.) и прокрутка...`;
+      } else if (secondsLeft > 0) {
+        statusEl.textContent = `Текст прочитан. Осталось подождать ${secondsLeft} сек.`;
+        acceptBtn.textContent = `Подождите ${secondsLeft} сек...`;
+      } else if (!scrolledToBottom) {
+        statusEl.textContent = 'Пролистайте текст соглашения до самого конца.';
+        acceptBtn.textContent = 'Пролистайте соглашение до конца';
       }
     }
-    if (!chat) return;
 
-    document.getElementById('current-chat-title').innerText = chat.name;
-    renderMessages();
-    renderChatList();
-
-    if (mobileSwitch && window.innerWidth <= 768) {
-      document.getElementById('app-screen').classList.add('chat-open');
-    }
-  }
-
-  function renderMessages() {
-    var box = document.getElementById('messages-box');
-    box.innerHTML = '';
-
-    var chat = null;
-    for (var i = 0; i < appData.chats.length; i++) {
-      if (appData.chats[i].id === appData.activeChatId) {
-        chat = appData.chats[i];
-        break;
+    function checkBottom() {
+      const distanceToBottom = scrollBox.scrollHeight - scrollBox.scrollTop - scrollBox.clientHeight;
+      if (distanceToBottom <= 25) {
+        scrolledToBottom = true;
       }
+      updateAcceptState();
     }
-    if (!chat) return;
 
-    for (var j = 0; j < chat.messages.length; j++) {
-      var m = chat.messages[j];
-      var div = document.createElement('div');
-      div.className = 'message ' + m.type;
-      div.innerText = m.text;
+    scrollBox.addEventListener('scroll', () => {
+      const now = Date.now();
+      const dt = now - lastScrollTime;
+      const dy = scrollBox.scrollTop - lastScrollTop;
 
-      var tSpan = document.createElement('span');
-      tSpan.className = 'msg-time';
-      tSpan.innerText = m.time;
-      div.appendChild(tSpan);
-
-      box.appendChild(div);
-    }
-    box.scrollTop = box.scrollHeight;
-  }
-
-  function sendMessage() {
-    var input = document.getElementById('message-input');
-    var text = input.value.trim();
-    if (!text) return;
-
-    var chat = null;
-    for (var i = 0; i < appData.chats.length; i++) {
-      if (appData.chats[i].id === appData.activeChatId) {
-        chat = appData.chats[i];
-        break;
+      if (!fastScrollWarned && dt < 120 && dy > 220) {
+        fastScrollWarned = true;
+        statusEl.textContent = 'Пожалуйста, не пролистывайте слишком быстро — ознакомьтесь с правилами.';
+        statusEl.className = 'terms-status warn';
       }
-    }
-    if (!chat) return;
 
-    var time = getTimeNow();
-    chat.messages.push({ text: text, type: 'outgoing', time: time });
-    saveVault();
-
-    if (dataChannel && dataChannel.readyState === 'open') {
-      dataChannel.send(JSON.stringify({ sender: appData.user, text: text }));
-    }
-
-    input.value = '';
-    renderMessages();
-    renderChatList();
-  }
-
-  function createNewChat() {
-    var name = document.getElementById('new-contact-name').value.trim();
-    var folder = document.getElementById('new-contact-folder').value;
-    if (!name) return;
-
-    var colors = ['#007aff', '#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
-    var newChat = {
-      id: 'chat_' + Date.now(),
-      name: name,
-      folder: folder,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      messages: []
-    };
-
-    appData.chats.unshift(newChat);
-    saveVault();
-    document.getElementById('new-contact-name').value = '';
-    document.getElementById('new-chat-modal').style.display = 'none';
-    openChat(newChat.id, true);
-  }
-
-  // P2P WebRTC узел
-  function initPeer() {
-    var RTCPeer = window.RTCPeerConnection || window.webkitRTCPeerConnection;
-    if (!RTCPeer) {
-      alert('Ваш просмотрщик файлов не поддерживает WebRTC. Откройте файл через полноценный браузер (Chrome / Edge).');
-      return false;
-    }
-    peerConnection = new RTCPeer({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      lastScrollTime = now;
+      lastScrollTop = scrollBox.scrollTop;
+      checkBottom();
     });
 
-    peerConnection.onicecandidate = function(e) {
-      if (!e.candidate) {
-        var sdpStr = JSON.stringify(peerConnection.localDescription);
-        document.getElementById('local-sdp').value = btoa(unescape(encodeURIComponent(sdpStr)));
+    // Независимый интервал таймера, который гарантированно тикает каждую секунду
+    const timerId = setInterval(() => {
+      if (secondsLeft > 0) {
+        secondsLeft -= 1;
+      }
+      checkBottom();
+      if (secondsLeft <= 0 && scrolledToBottom) {
+        clearInterval(timerId);
+      }
+    }, 1000);
+
+    updateAcceptState();
+
+    acceptBtn.addEventListener('click', () => {
+      clearInterval(timerId);
+      localStorage.setItem('trappist_terms_accepted_v3', '1');
+      modal.style.display = 'none';
+    });
+  })();
+
+  /* ================= 2. ЛОКАЛЬНЫЙ ФИЛЬТР СТОП-СЛОВ ================= */
+  const STOP_WORDS = [
+    'теракт', 'терроризм', 'взрывчатк', 'бомб', 'тротил', 'гексоген',
+    'детонатор', 'самодельное взрывное', 'экстремизм', 'свержение власти',
+    'наркотик', 'мефедрон', 'героин', 'кокаин', 'амфетамин', 'закладк',
+    'оружие купить', 'боеприпас', 'автомат калашникова'
+  ];
+
+  function containsStopWord(text) {
+    const lower = text.toLowerCase();
+    return STOP_WORDS.some(word => lower.includes(word));
+  }
+
+  /* ================= 3. P2P WEBRTC (VANILLA ICE + TURN ДЛЯ РФ) ================= */
+  const rtcConfig = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      }
+    ]
+  };
+
+  let pc = null;
+  let dataChannel = null;
+  let localStream = null;
+  let incomingFileMeta = null;
+  let incomingFileChunks = [];
+
+  const myCodeBox = document.getElementById('myCodeBox');
+  const peerCodeBox = document.getElementById('peerCodeBox');
+  const connBadge = document.getElementById('connBadge');
+  const subStatus = document.getElementById('subStatus');
+  const connectScreen = document.getElementById('connectScreen');
+  const chatScreen = document.getElementById('chatScreen');
+  const messagesArea = document.getElementById('messagesArea');
+  const audioCallBtn = document.getElementById('audioCallBtn');
+  const videoCallBtn = document.getElementById('videoCallBtn');
+
+  function compressPayload(obj) {
+    const json = JSON.stringify(obj);
+    if (window.pako) {
+      const deflated = window.pako.deflate(json);
+      let bin = '';
+      for (let i = 0; i < deflated.length; i++) bin += String.fromCharCode(deflated[i]);
+      return 'TRP2:' + btoa(bin);
+    }
+    return 'TRP1:' + btoa(unescape(encodeURIComponent(json)));
+  }
+
+  function decompressPayload(str) {
+    const clean = str.trim();
+    if (clean.startsWith('TRP2:') && window.pako) {
+      const bin = atob(clean.slice(5));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const inflated = window.pako.inflate(bytes, { to: 'string' });
+      return JSON.parse(inflated);
+    }
+    if (clean.startsWith('TRP1:')) {
+      const json = decodeURIComponent(escape(atob(clean.slice(5))));
+      return JSON.parse(json);
+    }
+    return JSON.parse(atob(clean));
+  }
+
+  function createPeerConnection() {
+    if (pc) pc.close();
+    pc = new RTCPeerConnection(rtcConfig);
+
+    pc.onconnectionstatechange = () => {
+      const state = pc.connectionState;
+      if (state === 'connected') {
+        connBadge.textContent = 'P2P В сети';
+        connBadge.classList.add('online');
+        subStatus.textContent = 'Прямой канал активен';
+        audioCallBtn.disabled = false;
+        videoCallBtn.disabled = false;
+        connectScreen.style.display = 'none';
+        chatScreen.style.display = 'flex';
+      } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+        connBadge.textContent = 'Не в сети';
+        connBadge.classList.remove('online');
+        subStatus.textContent = 'Соединение прервано';
+        audioCallBtn.disabled = true;
+        videoCallBtn.disabled = true;
       }
     };
 
-    peerConnection.ondatachannel = function(e) {
-      setupDataChannel(e.channel);
+    pc.ondatachannel = (event) => {
+      setupDataChannel(event.channel);
     };
-    return true;
+
+    pc.ontrack = (event) => {
+      const remoteVideo = document.getElementById('remoteVideo');
+      if (remoteVideo.srcObject !== event.streams[0]) {
+        remoteVideo.srcObject = event.streams[0];
+      }
+    };
   }
 
   function setupDataChannel(channel) {
     dataChannel = channel;
-    dataChannel.onopen = function() {
-      document.getElementById('current-chat-status').innerText = '● P2P узел активен';
-      document.getElementById('p2p-modal').style.display = 'none';
+    dataChannel.binaryType = 'arraybuffer';
+
+    dataChannel.onopen = () => {
+      connBadge.textContent = 'P2P В сети';
+      connBadge.classList.add('online');
+      audioCallBtn.disabled = false;
+      videoCallBtn.disabled = false;
+      connectScreen.style.display = 'none';
+      chatScreen.style.display = 'flex';
     };
-    dataChannel.onmessage = function(e) {
-      var data = JSON.parse(e.data);
-      for (var i = 0; i < appData.chats.length; i++) {
-        if (appData.chats[i].id === appData.activeChatId) {
-          appData.chats[i].messages.push({ text: data.sender + ': ' + data.text, type: 'incoming', time: getTimeNow() });
-          saveVault();
-          renderMessages();
-          renderChatList();
-          break;
+
+    dataChannel.onmessage = async (event) => {
+      if (typeof event.data === 'string') {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'chat') {
+          appendMessage(msg.text, 'peer');
+        } else if (msg.type === 'file-meta') {
+          incomingFileMeta = msg;
+          incomingFileChunks = [];
+        } else if (msg.type === 'file-end' && incomingFileMeta) {
+          const blob = new Blob(incomingFileChunks, { type: incomingFileMeta.mime });
+          const url = URL.createObjectURL(blob);
+          appendFileMessage(incomingFileMeta.name, incomingFileMeta.mime, url, 'peer');
+          incomingFileMeta = null;
+          incomingFileChunks = [];
+        } else if (msg.type === 'call-offer') {
+          await handleIncomingCall(msg.sdp, msg.video);
+        } else if (msg.type === 'call-answer') {
+          await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+          document.getElementById('callStatusText').textContent = 'Разговор идет';
+        } else if (msg.type === 'call-end') {
+          endCallCleanup();
         }
+      } else {
+        incomingFileChunks.push(event.data);
       }
     };
   }
 
-  function createOffer() {
-    if (!initPeer()) return;
-    var channel = peerConnection.createDataChannel('chat');
-    setupDataChannel(channel);
-    peerConnection.createOffer().then(function(offer) {
-      return peerConnection.setLocalDescription(offer);
-    });
-  }
-
-  function acceptRemote() {
-    var raw = document.getElementById('remote-sdp').value.trim();
-    if (!raw) return;
-    var desc = JSON.parse(decodeURIComponent(escape(atob(raw))));
-
-    if (!peerConnection && !initPeer()) return;
-    peerConnection.setRemoteDescription(desc).then(function() {
-      if (desc.type === 'offer') {
-        peerConnection.createAnswer().then(function(answer) {
-          return peerConnection.setLocalDescription(answer);
-        });
+  function waitForIceGathering(peerConn) {
+    return new Promise((resolve) => {
+      if (peerConn.iceGatheringState === 'complete') {
+        resolve();
+        return;
       }
-    });
-  }
-
-  // Привязка всех событий после загрузки страницы
-  document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('login-btn').onclick = handleLogin;
-    document.getElementById('pin-input').onkeypress = function(e) {
-      if (e.key === 'Enter') handleLogin();
-    };
-    document.getElementById('nav-logout').onclick = handleLogout;
-
-    document.getElementById('nav-new-chat').onclick = function() {
-      document.getElementById('new-chat-modal').style.display = 'flex';
-    };
-    document.getElementById('header-new-chat').onclick = function() {
-      document.getElementById('new-chat-modal').style.display = 'flex';
-    };
-    document.getElementById('cancel-chat-btn').onclick = function() {
-      document.getElementById('new-chat-modal').style.display = 'none';
-    };
-    document.getElementById('confirm-chat-btn').onclick = createNewChat;
-
-    document.getElementById('nav-p2p').onclick = function() {
-      document.getElementById('p2p-modal').style.display = 'flex';
-    };
-    document.getElementById('header-p2p-btn').onclick = function() {
-      document.getElementById('p2p-modal').style.display = 'flex';
-    };
-    document.getElementById('close-p2p-btn').onclick = function() {
-      document.getElementById('p2p-modal').style.display = 'none';
-    };
-    document.getElementById('create-offer-btn').onclick = createOffer;
-    document.getElementById('accept-remote-btn').onclick = acceptRemote;
-
-    document.getElementById('mobile-back-btn').onclick = function() {
-      document.getElementById('app-screen').classList.remove('chat-open');
-    };
-
-    document.getElementById('send-msg-btn').onclick = sendMessage;
-    document.getElementById('message-input').onkeypress = function(e) {
-      if (e.key === 'Enter') sendMessage();
-    };
-
-    document.getElementById('search-input').oninput = renderChatList;
-
-    var folders = document.querySelectorAll('.folder');
-    for (var i = 0; i < folders.length; i++) {
-      folders[i].onclick = function() {
-        for (var j = 0; j < folders.length; j++) folders[j].classList.remove('active');
-        this.classList.add('active');
-        currentFolder = this.getAttribute('data-folder');
-        renderChatList();
+      const timeout = setTimeout(() => resolve(), 3500);
+      peerConn.onicegatheringstatechange = () => {
+        if (peerConn.iceGatheringState === 'complete') {
+          clearTimeout(timeout);
+          resolve();
+        }
       };
+    });
+  }
+
+  async function generateMyCode() {
+    subStatus.textContent = 'Сбор сетевых маршрутов...';
+    createPeerConnection();
+    const dc = pc.createDataChannel('trappist-chat');
+    setupDataChannel(dc);
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await waitForIceGathering(pc);
+
+    const packed = compressPayload(pc.localDescription);
+    myCodeBox.value = packed;
+    subStatus.textContent = 'Код готов к отправке другу';
+    renderQrCode(packed);
+  }
+
+  async function connectWithPeerCode() {
+    const raw = peerCodeBox.value.trim();
+    if (!raw) {
+      alert('Сначала вставьте код друга или отсканируйте QR!');
+      return;
     }
+
+    try {
+      const desc = decompressPayload(raw);
+      if (desc.type === 'offer') {
+        subStatus.textContent = 'Обработка кода друга...';
+        createPeerConnection();
+        await pc.setRemoteDescription(new RTCSessionDescription(desc));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        await waitForIceGathering(pc);
+
+        const packedAnswer = compressPayload(pc.localDescription);
+        myCodeBox.value = packedAnswer;
+        renderQrCode(packedAnswer);
+        subStatus.textContent = 'Отправьте ответный код/QR из Шага 1 другу!';
+        alert('Код друга принят! Теперь отправьте свой ответный код (или QR) из Шага 1 обратно другу.');
+      } else if (desc.type === 'answer') {
+        if (!pc) {
+          alert('Сначала нажмите «1. Создать код», а затем вставьте ответный код друга.');
+          return;
+        }
+        await pc.setRemoteDescription(new RTCSessionDescription(desc));
+        subStatus.textContent = 'Установка прямого P2P...';
+      }
+    } catch (e) {
+      alert('Ошибка чтения кода. Убедитесь, что код скопирован полностью.');
+    }
+  }
+
+  document.getElementById('createOfferBtn').addEventListener('click', generateMyCode);
+  document.getElementById('connectBtn').addEventListener('click', connectWithPeerCode);
+
+  document.getElementById('copyMyCodeBtn').addEventListener('click', async () => {
+    if (!myCodeBox.value) return;
+    try {
+      await navigator.clipboard.writeText(myCodeBox.value);
+      subStatus.textContent = 'Код скопирован в буфер обмена';
+    } catch {
+      myCodeBox.select();
+      document.execCommand('copy');
+    }
+  });
+
+  /* ================= 4. QR-КОДЫ (ГЕНЕРАЦИЯ И СКАНЕР) ================= */
+  function renderQrCode(text) {
+    const preview = document.getElementById('qrPreviewBox');
+    const canvas = document.getElementById('qrCanvas');
+    const dlBtn = document.getElementById('downloadQrBtn');
+
+    if (window.QRCode) {
+      QRCode.toCanvas(canvas, text, {
+        width: 320,
+        margin: 3,
+        errorCorrectionLevel: 'L',
+        color: { dark: '#000000', light: '#ffffff' }
+      }, (err) => {
+        if (!err) {
+          preview.style.display = 'flex';
+          dlBtn.disabled = false;
+        }
+      });
+    }
+  }
+
+  document.getElementById('downloadQrBtn').addEventListener('click', () => {
+    const canvas = document.getElementById('qrCanvas');
+    const link = document.createElement('a');
+    link.download = 'trappist-qr.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+
+  async function decodeImageElement(imgSource) {
+    if ('BarcodeDetector' in window) {
+      try {
+        const detector = new BarcodeDetector({ formats: ['qr_code'] });
+        const codes = await detector.detect(imgSource);
+        if (codes.length > 0 && codes[0].rawValue) {
+          return codes[0].rawValue;
+        }
+      } catch (e) {}
+    }
+
+    if (window.jsQR) {
+      const c = document.getElementById('scannerCanvas');
+      const ctx = c.getContext('2d');
+      const w = imgSource.videoWidth || imgSource.naturalWidth || imgSource.width;
+      const h = imgSource.videoHeight || imgSource.naturalHeight || imgSource.height;
+      if (!w || !h) return null;
+
+      c.width = w;
+      c.height = h;
+      ctx.drawImage(imgSource, 0, 0, w, h);
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const code = jsQR(imgData.data, w, h, { inversionAttempts: 'attemptBoth' });
+      if (code && code.data) return code.data;
+    }
+    return null;
+  }
+
+  let scannerStream = null;
+  let scanLoopActive = false;
+
+  document.getElementById('scanQrCamBtn').addEventListener('click', async () => {
+    const modal = document.getElementById('scannerModal');
+    const video = document.getElementById('scannerVideo');
+    try {
+      scannerStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      video.srcObject = scannerStream;
+      await video.play();
+      modal.style.display = 'flex';
+      scanLoopActive = true;
+
+      const tick = async () => {
+        if (!scanLoopActive) return;
+        const result = await decodeImageElement(video);
+        if (result && (result.startsWith('TRP') || result.length > 40)) {
+          stopCameraScanner();
+          peerCodeBox.value = result;
+          connectWithPeerCode();
+          return;
+        }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    } catch (e) {
+      alert('Не удалось открыть камеру. Проверьте разрешения приложения или выберите QR из галереи.');
+    }
+  });
+
+  function stopCameraScanner() {
+    scanLoopActive = false;
+    document.getElementById('scannerModal').style.display = 'none';
+    if (scannerStream) {
+      scannerStream.getTracks().forEach(t => t.stop());
+      scannerStream = null;
+    }
+  }
+
+  document.getElementById('closeScannerBtn').addEventListener('click', stopCameraScanner);
+
+  document.getElementById('scanQrFileBtn').addEventListener('click', () => {
+    document.getElementById('qrFileInput').click();
+  });
+
+  document.getElementById('qrFileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = async () => {
+      const result = await decodeImageElement(img);
+      if (result) {
+        peerCodeBox.value = result;
+        connectWithPeerCode();
+      } else {
+        alert('QR-код на изображении не найден. Попробуйте обрезать скриншот ближе к QR-коду.');
+      }
+      e.target.value = '';
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
+  /* ================= 5. ЧАТ, ФАЙЛЫ И ЗВОНКИ ================= */
+  function appendMessage(text, who) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + who;
+    div.textContent = text;
+    messagesArea.appendChild(div);
+    messagesArea.scrollTop = messagesArea.scrollHeight;
+  }
+
+  function appendFileMessage(name, mime, url, who) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + who;
+    if (mime && mime.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.src = url;
+      div.appendChild(img);
+    }
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.className = 'file-link';
+    a.textContent = '📄 ' + name;
+    div.appendChild(a);
+    messagesArea.appendChild(div);
+    messagesArea.scrollTop = messagesArea.scrollHeight;
+  }
+
+  function sendChatMessage() {
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    if (containsStopWord(text)) {
+      alert('Сообщение заблокировано локальным фильтром безопасности (нарушение правил соглашения).');
+      return;
+    }
+
+    if (dataChannel && dataChannel.readyState === 'open') {
+      dataChannel.send(JSON.stringify({ type: 'chat', text }));
+      appendMessage(text, 'me');
+      input.value = '';
+    }
+  }
+
+  document.getElementById('sendBtn').addEventListener('click', sendChatMessage);
+  document.getElementById('msgInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendChatMessage();
+  });
+
+  document.getElementById('attachBtn').addEventListener('click', () => {
+    document.getElementById('fileInput').click();
+  });
+
+  document.getElementById('fileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !dataChannel || dataChannel.readyState !== 'open') return;
+    if (file.size > 25 * 1024 * 1024) {
+      alert('Максимальный размер файла для P2P-передачи — 25 МБ.');
+      return;
+    }
+
+    dataChannel.send(JSON.stringify({ type: 'file-meta', name: file.name, mime: file.type }));
+    const buffer = await file.arrayBuffer();
+    const chunkSize = 16384;
+    for (let offset = 0; offset < buffer.byteLength; offset += chunkSize) {
+      while (dataChannel.bufferedAmount > 1024 * 1024) {
+        await new Promise(r => setTimeout(r, 40));
+      }
+      dataChannel.send(buffer.slice(offset, offset + chunkSize));
+    }
+    dataChannel.send(JSON.stringify({ type: 'file-end' }));
+
+    const url = URL.createObjectURL(file);
+    appendFileMessage(file.name, file.type, url, 'me');
+    e.target.value = '';
+  });
+
+  async function startCall(withVideo) {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: withVideo });
+      document.getElementById('localVideo').srcObject = localStream;
+      document.getElementById('callModal').style.display = 'flex';
+      document.getElementById('callStatusText').textContent = 'Вызов собеседника...';
+
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      dataChannel.send(JSON.stringify({ type: 'call-offer', sdp: pc.localDescription, video: withVideo }));
+    } catch (e) {
+      alert('Нет доступа к микрофону или камере.');
+    }
+  }
+
+  async function handleIncomingCall(sdp, withVideo) {
+    const ok = confirm(withVideo ? 'Входящий видеозвонок. Принять?' : 'Входящий аудиозвонок. Принять?');
+    if (!ok) {
+      dataChannel.send(JSON.stringify({ type: 'call-end' }));
+      return;
+    }
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: withVideo });
+      document.getElementById('localVideo').srcObject = localStream;
+      document.getElementById('callModal').style.display = 'flex';
+      document.getElementById('callStatusText').textContent = 'Разговор идет';
+
+      await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      dataChannel.send(JSON.stringify({ type: 'call-answer', sdp: pc.localDescription }));
+    } catch (e) {
+      alert('Ошибка доступа к микрофону/камере.');
+    }
+  }
+
+  function endCallCleanup() {
+    document.getElementById('callModal').style.display = 'none';
+    if (localStream) {
+      localStream.getTracks().forEach(t => t.stop());
+      localStream = null;
+    }
+  }
+
+  audioCallBtn.addEventListener('click', () => startCall(false));
+  videoCallBtn.addEventListener('click', () => startCall(true));
+  document.getElementById('endCallBtn').addEventListener('click', () => {
+    if (dataChannel && dataChannel.readyState === 'open') {
+      dataChannel.send(JSON.stringify({ type: 'call-end' }));
+    }
+    endCallCleanup();
+  });
+
+  document.getElementById('toggleMicBtn').addEventListener('click', () => {
+    if (!localStream) return;
+    localStream.getAudioTracks().forEach(t => t.enabled = !t.enabled);
+  });
+
+  document.getElementById('toggleCamBtn').addEventListener('click', () => {
+    if (!localStream) return;
+    localStream.getVideoTracks().forEach(t => t.enabled = !t.enabled);
   });
 </script>
 </body>
